@@ -1,7 +1,7 @@
 # OpenAI.luau
 A simple OpenAI API wrapper for Roblox.
 
-[Wally](https://wally.run/package/deprecatedbrain/openai-luau) • [GitHub](https://github.com/deprecatedbrain/OpenAI.luau) • [Roblox Marketplace](https://create.roblox.com/store/asset/90380850667336/OpenAI) • [Documentation]()
+[Wally](https://wally.run/package/deprecatedbrain/openai-luau) • [GitHub](https://github.com/deprecatedbrain/OpenAI.luau) • [Roblox Marketplace](https://create.roblox.com/store/asset/90380850667336/OpenAI) • [Documentation](https://github.com/deprecatedbrain/OpenAI.luau/blob/master/DOCUMENTATION.md)
 
 Example:
 ```lua
