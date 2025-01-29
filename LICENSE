@@ -1,0 +1,166 @@
+local HttpService = game:GetService("HttpService")
+
+-- Type definitions
+export type OpenAIConfig = {
+	apiKey: string?,
+	baseUrl: string?,
+	timeout: number?
+}
+
+export type ChatMessage = {
+	role: "system" | "user" | "assistant" | "tool",
+	content: string,
+	name: string?
+}
+
+export type ChatCompletionRequest = {
+	model: string,
+	messages: {ChatMessage},
+	max_completion_tokens: number?,
+	temperature: number?,
+	top_p: number?,
+	seed: number?,
+	generations: number?,
+	tools: {}?,
+	tool_choice: {}?
+}
+
+export type ChatCompletionChoice = {
+	index: number,
+	message: ChatMessage,
+	logprobs: boolean | nil,
+	finish_reason: string
+}
+
+export type ChatCompletionResponse = {
+	id: string,
+	choices: {ChatCompletionChoice},
+	created: number,
+	model: string,
+}
+
+export type Model = {
+	id: string,
+	created: number,
+	object: string,
+	owned_by: string
+}
+
+export type ModerationResults = {
+	flagged: boolean,
+	categories: {[string]: boolean},
+	category_scores: {[string]: number},
+	category_applied_input_types: {[string]: boolean}
+}
+
+export type ModerationOutput = {
+	id: string,
+	model: string,
+	results: {ModerationResults}
+}
+
+-- OpenAI Module
+local OpenAI = {}
+OpenAI.__index = OpenAI
+
+-- Default OpenAI API base URL
+OpenAI.defaultBaseURL = "https://api.openai.com/v1"
+
+---@param options OpenAIConfig
+---@return table?, string?
+function OpenAI.new(options: OpenAIConfig)
+	if not HttpService.HttpEnabled then
+		return nil, "HTTP is not enabled in Roblox. Enable HttpService to use this module."
+	end
+
+	local self = setmetatable({}, OpenAI)
+
+	local baseUrl = options.baseUrl or OpenAI.defaultBaseURL
+	if not baseUrl:match("^https?://") then
+		return nil, "Invalid base URL. Must start with 'http://' or 'https://'."
+	end
+
+	self.baseUrl = baseUrl:gsub("/$", "")
+
+	self.timeout = options.timeout or 60 * 1000
+
+	self.apiKey = options.apiKey
+	if baseUrl == OpenAI.defaultBaseURL and (not self.apiKey or self.apiKey == "") then
+		return nil, "API key is required for the official OpenAI endpoint."
+	end
+
+	return self, nil
+end
+
+---@param request ChatCompletionRequest
+---@return ChatCompletionResponse?, string?
+function OpenAI:CreateChatCompletion(request: ChatCompletionRequest)
+	if not request.model then
+		return nil, "Model is required"
+	end
+	if not request.messages or #request.messages == 0 then
+		return nil, "Messages are required"
+	end
+
+	local requestBody = {
+		model = request.model,
+		messages = request.messages,
+		max_tokens = request.max_completion_tokens,
+		temperature = request.temperature,
+		top_p = request.top_p,
+		seed = request.seed,
+		n = request.generations,
+		tools = request.tools,
+		tool_choice = request.tool_choice
+	}
+
+	for k, v in pairs(requestBody) do
+		if v == nil then
+			requestBody[k] = nil
+		end
+	end
+
+	local success, response = pcall(function()
+		return HttpService:RequestAsync({
+			Url = `{self.baseUrl}/chat/completions`,
+			Method = "POST",
+			Headers = {
+				["Content-Type"] = "application/json",
+				["Authorization"] = `Bearer {self.apiKey or ""}`,
+				["Accept"] = "application/json"
+			},
+			Body = HttpService:JSONEncode(requestBody)
+		})
+	end)
+
+	if not success then
+		return nil, `Request failed: {response}`
+	end
+
+	if not response.Success then
+		return nil, `HTTP Error {response.StatusCode}: {response.Body}`
+	end
+
+	local parseSuccess, data = pcall(function()
+		return HttpService:JSONDecode(response.Body)
+	end)
+
+	if not parseSuccess then
+		return nil, `Failed to parse JSON response: {data}`
+	end
+
+	if data.error then
+		return nil, data.error.message
+	end
+
+	local responsePayload: ChatCompletionResponse = {
+		id = data.id,
+		choices = data.choices,
+		created = data.created,
+		model = data.model
+	}
+
+	return responsePayload
+end
+
+return OpenAI

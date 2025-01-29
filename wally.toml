@@ -1,0 +1,9 @@
+[package]
+name = "deprecatedbrain/openai-luau"
+description = "A simple OpenAI API wrapper for Roblox."
+version = "0.1.1"
+registry = "https://github.com/upliftgames/wally-index"
+license = "MIT"
+authors = ["deprecatedbrain"]
+realm = "shared"
+repository = "https://github.com/deprecatedbrain/OpenAI.luau"
